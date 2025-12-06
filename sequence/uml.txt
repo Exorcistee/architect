@@ -1,0 +1,194 @@
+@startuml
+!pragma teoz true
+
+actor Клиент as client
+actor Эксперт as expert
+box Client App
+participant ClientApp as clientApp
+endbox
+box Backend App
+box Registration Module
+participant RegistrationService as registrationService
+participant RegistrationRepository as registrationRepository
+endbox
+box Search Module
+participant SearchService as searchService
+participant SearchRepository as searchRepository
+endbox
+box Card Module
+participant CardService as cardService
+participant CardRepository as cardRepository
+endbox
+box Record Module
+participant RecordService as recordService
+participant RecordRepository as recordRepository
+endbox
+box Payment Module
+participant PaymentService as paymentService
+participant PaymentRepository as paymentRepository
+endbox
+participant PaymentSystem as paymentSystem
+box Consultation Module
+participant ConsultationService as consultationService
+participant ConsultationRepository as consultationRepository
+endbox
+database PostgreSQL as postgres
+endbox
+
+client -> clientApp: Отправить данные\nдля регистрации
+activate client
+activate clientApp
+clientApp -> registrationService: Запросить регистрацию
+activate registrationService
+registrationService -> registrationRepository: Проверить существование\nтакого профиля
+activate registrationRepository
+registrationRepository -> postgres: Запросить данные
+activate postgres
+postgres --> registrationRepository: Вернуть пустой ответ
+registrationRepository --> registrationService: Сообщить об отсутствтии\nтакого профиля
+registrationService -> registrationRepository: Сохранить новый профиль
+registrationRepository -> postgres: Сохранить новый профиль в базу данных
+postgres --> registrationRepository
+deactivate postgres
+registrationRepository --> registrationService
+deactivate registrationRepository
+registrationService --> clientApp
+deactivate registrationService
+clientApp --> client: Сообщить об\nуспешной регистрации
+deactivate clientApp
+deactivate client
+
+expert -> clientApp: Отправка данных \nдля регистрации
+activate expert
+activate clientApp
+clientApp -> registrationService: Запрос на регистрацию
+activate registrationService
+registrationService -> registrationRepository: Проверить существование\nтакого профиля
+activate registrationRepository
+registrationRepository -> postgres: Запросить данные
+activate postgres
+postgres --> registrationRepository: Вернуть пустой ответ
+registrationRepository --> registrationService: Сообщить об отсутствтии\nтакого профиля
+registrationService -> registrationRepository: Сохранить новый профиль
+registrationRepository -> postgres: Сохранить новый профиль в базу данных
+postgres --> registrationRepository
+deactivate postgres
+registrationRepository --> registrationService
+deactivate registrationRepository
+registrationService --> clientApp
+deactivate registrationService
+clientApp --> expert: Сообщить об\nуспешной регистрации
+deactivate clientApp
+deactivate expert
+
+client -> clientApp: Выбрать фильтры для\nпоиска экспертов
+activate client
+activate clientApp
+clientApp -> searchService: Запросить список экспертов по фильтрам
+activate searchService
+searchService -> searchRepository: Запросить список\nэкспертов по фильтрам
+activate searchRepository
+searchRepository -> postgres: Запросить данные
+activate postgres
+postgres --> searchRepository
+searchRepository --> searchService
+deactivate searchRepository
+searchService --> clientApp
+deactivate searchService
+clientApp --> client
+
+client -> clientApp: Выбрать карточку эксперта
+clientApp -> cardService: Запросить данные о карточке
+activate cardService
+cardService -> cardRepository: Запросить данные\nо карточке
+activate cardRepository
+cardRepository -> postgres: Запросить данные
+postgres --> cardRepository
+deactivate cardRepository
+cardRepository --> cardService
+deactivate cardService
+cardService --> clientApp
+clientApp --> client
+
+client -> clientApp: Оформить запись
+clientApp -> recordService: Отправить данные для записи
+activate recordService
+recordService -> recordRepository: Сохранить новую запись
+activate recordRepository
+recordRepository -> postgres: Сохранить новую запись
+postgres --> recordRepository
+recordRepository --> recordService
+deactivate recordRepository
+recordService --> clientApp
+deactivate recordService
+clientApp --> client
+
+client -> clientApp: Оплатить запись
+clientApp -> paymentService: Передать данные карты
+activate paymentService
+paymentService -> paymentSystem: Оплатить запись
+activate paymentSystem
+paymentSystem --> expert: Переводит деньги эксперту
+activate expert
+deactivate expert
+paymentSystem --> paymentService
+deactivate paymentSystem
+paymentService -> paymentRepository: Сохранить оплату
+activate paymentRepository
+paymentRepository -> postgres: Сохранить оплату
+postgres --> paymentRepository
+deactivate postgres
+paymentRepository --> paymentService
+deactivate paymentRepository
+paymentService --> clientApp
+deactivate paymentService
+clientApp -> client
+deactivate clientApp
+deactivate client
+
+expert -> clientApp: Начать консультацию
+activate expert
+activate clientApp
+clientApp -> consultationService: Начать консультацию
+activate consultationService
+consultationService -> consultationRepository: Изменить статус\nконсультации
+activate consultationRepository
+consultationRepository -> postgres: Обновить статус\nконсультации
+activate postgres
+postgres --> consultationRepository
+consultationRepository --> consultationService
+consultationService --> clientApp
+clientApp --> expert
+
+client -> clientApp: Подключиться к консультации
+activate client
+clientApp -> consultationService: Подключиться к консультации
+consultationService -> consultationRepository: Проверить активность\nконсультации
+consultationRepository -> postgres: Запросить данные
+postgres --> consultationRepository
+deactivate postgres
+consultationRepository --> consultationService
+deactivate consultationRepository
+consultationService --> clientApp: Дать доступ на подключение
+clientApp --> client
+
+expert -> clientApp: Завершить консультацию
+clientApp -> consultationService: Завершить консультацию
+consultationService -> consultationRepository: Изменить статус\nконсультации
+activate consultationRepository
+consultationRepository -> postgres: Обновить статус\nконсультации
+activate postgres
+postgres --> consultationRepository
+deactivate postgres
+consultationRepository --> consultationService
+deactivate consultationRepository
+consultationService --> clientApp
+clientApp --> expert
+deactivate expert
+consultationService --> clientApp: Отключить клиента
+deactivate consultationService
+clientApp --> client: Отключить клиента
+deactivate clientApp
+deactivate client
+
+@enduml
