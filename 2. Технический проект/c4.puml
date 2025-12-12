@@ -24,30 +24,20 @@ System_Boundary(platform, "Платформа для онлайн-консуль
     
     Container(api_gateway, "API Gateway", "Nginx/Kong", "Единая точка входа, аутентификация, балансировка")
     
-    System_Boundary(core_services, "Бизнес-логика") {
-        Component(auth_service, "Auth Service", "NestJS", "Аутентификация, авторизация, JWT")
-        Component(user_service, "User Service", "NestJS", "Управление профилями, роли")
-        Component(booking_service, "Booking Service", "NestJS", "Расписания, слоты, бронирования")
-        Component(search_service, "Search Service", "NestJS + ElasticSearch", "Поиск и фильтрация экспертов")
-        Component(payment_service, "Payment Service", "NestJS", "Платежи, транзакции, выплаты")
-        Component(review_service, "Review Service", "NestJS", "Отзывы, рейтинги, репутация")
-    }
-    
-    System_Boundary(realtime_services, "Real-time сервисы") {
-        Component(session_service, "Session Service", "NestJS + Socket.io", "Управление сессиями консультаций")
-        Component(webrtc_gateway, "WebRTC Gateway", "Node.js + WebRTC", "Сигналинг для видео/аудио")
-        Component(chat_service, "Chat Service", "Node.js + Socket.io", "Текстовый чат, история сообщений")
-        Component(notification_service, "Notification Service", "NestJS", "WebSocket/Push уведомления")
-    }
-    
-    System_Boundary(integration_services, "Интеграционные сервисы") {
-        Component(email_service, "Email Service", "NestJS", "Шаблоны, очереди email")
-        Component(sms_service, "SMS Service", "NestJS", "Верификация, уведомления")
-        Component(analytics_service, "Analytics Service", "NestJS", "Сбор метрик, отчеты")
+    System_Boundary(core_services, "Services") {
+        Container(auth_service, "Auth Service", "NestJS", "Аутентификация, авторизация, JWT")
+        Container(user_service, "User Service", "NestJS", "Управление профилями, роли")
+        Container(booking_service, "Booking Service", "NestJS", "Расписания, слоты, бронирования")
+        Container(search_service, "Search Service", "NestJS + ElasticSearch", "Поиск и фильтрация экспертов")
+        Container(payment_service, "Payment Service", "NestJS", "Платежи, транзакции, выплаты")
+        Container(review_service, "Review Service", "NestJS", "Отзывы, рейтинги, репутация")
+        Container(chat_service, "Chat Service", "Node.js + Socket.io", "Текстовый чат, история сообщений")
+        Container(analytics_service, "Analytics Service", "NestJS", "Сбор метрик, отчеты")
+        Container(notification_service, "Notifications Service", "NestJS", "Уведомления") 
     }
     
     ContainerDb(postgres_db, "Основная БД", "PostgreSQL 15", "Пользователи, бронирования, платежи")
-    ContainerDb(redis_cache, "Кэш и Pub/Sub", "Redis 7", "Сессии, кэш, real-time события")
+    ContainerDb(redis_cache, "Кэш и Pub/Sub", "Redis 7", "Сессии, кэш")
     ContainerDb(message_queue, "Очередь сообщений", "RabbitMQ", "Асинхронные задачи, обработка событий")
 }
 
@@ -68,21 +58,11 @@ api_gateway --> payment_service : "HTTP (платежи)"
 api_gateway --> review_service : "HTTP (отзывы)"
 api_gateway --> analytics_service : "HTTP (логирование метрик)"
 
-api_gateway --> session_service : "WebSocket (управление сессиями)"
 api_gateway --> chat_service : "WebSocket (чат)"
 api_gateway --> notification_service : "WebSocket (уведомления)"
 
-auth_service --> user_service : "событие: пользователь создан"
-booking_service --> session_service : "событие: сессия запланирована"
-payment_service --> booking_service : "событие: платеж подтвержден"
-review_service --> user_service : "событие: обновлен рейтинг"
-
-session_service --> webrtc_gateway : "сигналинг (WebSocket)"
-session_service --> chat_service : "инициализация чата (HTTP)"
-session_service --> notification_service : "уведомление о начале (событие)"
-
-notification_service --> email_service : "HTTP (отправка email)"
-notification_service --> sms_service : "HTTP (отправка SMS)"
+notification_service --> email_ext : "REST API"
+notification_service --> sms_ext : "REST API"
 
 auth_service --> postgres_db : "TypeORM"
 user_service --> postgres_db : "TypeORM"
@@ -91,17 +71,12 @@ payment_service --> postgres_db : "TypeORM"
 review_service --> postgres_db : "TypeORM"
 search_service --> postgres_db : "TypeORM"
 
-session_service --> redis_cache : "хранение активных сессий"
 chat_service --> redis_cache : "Pub/Sub для сообщений"
 notification_service --> redis_cache : "WebSocket соединения"
 
-email_service --> message_queue : "AMQP (отложенная отправка)"
-sms_service --> message_queue : "AMQP (батчинг SMS)"
+
 analytics_service --> postgres_db : "AMQP (обработка событий)"
 
-webrtc_gateway --> video_ext : "WebRTC/TURN"
-email_service --> email_ext : "SMTP/REST API"
-sms_service --> sms_ext : "REST API"
 payment_service --> payment_ext : "REST API"
 
 
