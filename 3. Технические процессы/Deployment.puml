@@ -1,0 +1,87 @@
+@startuml
+left to right direction
+!define C4P https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master
+!includeurl C4P/C4_Container.puml
+
+title C4 Infrastructure Diagram - Сервис Онлайн-Консультаций
+
+
+System_Ext(stripe, "Stripe API", "Платежная система", "Обработка онлайн-платежей")
+System_Ext(paypal, "PayPal API", "Платежная система", "Альтернативный способ оплаты")
+System_Ext(twilio, "Twilio API", "Сервис коммуникаций", "SMS уведомления\nVideo API опционально")
+
+package "Production Сервер\n(Cloud VPS / Kubernetes)" as server {
+    
+    Container(nginx, "Nginx", "Nginx", "Обратный прокси и балансировка нагрузки\nSSL/TLS терминация\nСтатические файлы")
+    
+    package "Backend Services (Docker/K8s)" as backend {
+        Container(node_api1, "API Сервис #1", "NestJS + Node.js", "Порт 3000\nОсновной сервер приложения")
+        Container(node_api2, "API Сервис #2", "NestJS + Node.js", "Порт 3001\nРеплика для балансировки")
+        
+        Container(websocket_server, "WebSocket Server", "NestJS + Socket.io", "Порт 3002\nРеальный время: чат, уведомления")
+        Container(media_server, "Media Server", "Node.js + WebRTC", "Порт 3003\nВидео/аудио консультации\nSFU архитектура")
+        
+        Container(postgres, "PostgreSQL", "PostgreSQL 15", "Основная база данных\n- Пользователи\n- Эксперты\n- Консультации\n- Платежи")
+        
+        Container(redis, "Redis", "Redis 7", "Кэширование сессий\nСостояния WebSocket\nОчереди сообщений")
+        
+    }
+    
+}
+
+package "Клиентские устройства" as clients {
+    Container_Boundary(web_client, "Веб-браузер") {
+        Container(web_app, "Веб-клиент", "JavaScript", "Видео консультации через WebRTC\nИнтерфейс пользователя")
+    }
+}
+
+package "Окружение разработки" as dev_env {
+    Container(dev_backend, "Dev Backend", "NestJS + Docker", "Локальная разработка API\nHot reload")
+    Container(dev_frontend, "Dev Frontend", "React + Vite", "Локальная разработка UI\nFast refresh")
+    Container(dev_postgres, "Dev PostgreSQL", "PostgreSQL", "Локальная БД для разработки")
+}
+
+Person(client, "Клиент", "Получает консультации, ищет экспертов")
+Person(expert, "Эксперт", "Проводит консультации, управляет расписанием")
+Person(admin, "Администратор", "Модерация, управление платформой")
+
+Rel(client, web_app, "Использует веб-приложение", "HTTPS/WebRTC")
+Rel(expert, web_app, "Проводит консультации", "HTTPS/WebRTC")
+Rel(admin, web_app, "Администрирует платформу", "HTTPS")
+Rel(web_app, nginx, "API запросы", "HTTPS/WebSocket")
+
+Rel(nginx, node_api1, "API запросы (50%)", "HTTP localhost:3000")
+Rel(nginx, node_api2, "API запросы (50%)", "HTTP localhost:3001")
+
+Rel(node_api1, postgres, "Чтение/запись данных", "TypeORM/Prisma")
+Rel(node_api2, postgres, "Чтение/запись данных", "TypeORM/Prisma")
+Rel(node_api1, redis, "Кэширование и сессии", "ioredis")
+Rel(node_api2, redis, "Кэширование и сессии", "ioredis")
+Rel(websocket_server, redis, "Состояния подключений", "Pub/Sub")
+
+Rel(node_api1, media_server, "Управление сессиями", "REST API")
+
+Rel(node_api1, stripe, "Обработка платежей", "HTTPS TLS 1.3")
+Rel(node_api1, paypal, "Обработка платежей", "HTTPS TLS 1.3")
+Rel(node_api2, stripe, "Обработка платежей", "HTTPS TLS 1.3")
+Rel(node_api2, paypal, "Обработка платежей", "HTTPS TLS 1.3")
+
+Rel(node_api1, twilio, "SMS уведомления", "Twilio API")
+Rel(node_api2, twilio, "SMS уведомления", "Twilio API")
+
+Rel(node_api1, websocket_server, "Real-time события", "Redis Pub/Sub")
+Rel(node_api2, websocket_server, "Real-time события", "Redis Pub/Sub")
+
+Rel(dev_frontend, dev_backend, "API запросы в dev", "HTTP localhost:3000")
+Rel(dev_backend, dev_postgres, "Разработка с локальной БД", "PostgreSQL")
+
+note right of server
+  <b>Конфигурация сервера:</b>
+  - Cloud VPS: 8-16 GB RAM, 4-8 vCPU
+  - Docker + Docker Compose / Kubernetes
+  - Nginx как reverse proxy
+  - 2+ экземпляра API для отказоустойчивости
+
+end note
+
+@enduml
