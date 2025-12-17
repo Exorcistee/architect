@@ -1,0 +1,265 @@
+@startuml maintenance-deployment
+!theme vibrant
+
+title Сервис онлайн-консультаций
+
+actor "Разработчик" as developer
+actor "DevOps инженер" as devops
+
+package "Разработка" as dev_process {
+  rectangle "GitHub Repository" as github << (C, #FFAAAA) >>
+  note right of github
+    <b>Git Flow для монолита:</b>
+    - main: production-ready код
+    - develop: разработка
+    - feature/*: новые фичи
+    - release/*: подготовка к релизу
+    - hotfix/*: экстренные исправления
+    
+    <b>Структура репозитория:</b>
+    /backend: NestJS API + WebSocket
+    /frontend: React приложение
+    /mediaserver: WebRTC сервер
+    /deploy: Docker, docker-compose
+    /docs: документация
+  end note
+  
+  rectangle "Локальная разработка" as local_dev << (C, #FFAAAA) >>
+  note right of local_dev
+    <b>Локальное окружение:</b>
+    - Docker Compose для backend
+    - React dev server (Vite)
+    - Hot reload для фронтенда
+    - Локальные базы данных
+    - WebRTC эмулятор
+  end note
+}
+
+package "CI/CD: Backend (NestJS)" as cicd_backend {
+  
+  rectangle "GitHub Actions\n(Backend тесты)" as backend_tests << (C, #FFAAAA) >>
+  note right of backend_tests
+    <b>Запускается на push в develop/main:</b>
+    - Unit Tests (Jest)
+    - E2E Tests (SuperTest)
+    - Integration Tests
+    - WebSocket тесты
+    - Тесты TypeORM моделей
+    - Проверка миграций БД
+  end note
+  
+  rectangle "Security Scan\n(Backend)" as security_scan << (C, #FFAAAA) >>
+  note right of security_scan
+    <b>Проверки безопасности:</b>
+    - Snyk: уязвимости зависимостей
+    - npm audit: аудит пакетов
+    - SonarQube: статический анализ
+    - Проверка на SQL injection
+    - Проверка авторизации
+  end note
+  
+  rectangle "Сборка Docker\nобразов API" as docker_build_backend << (C, #FFAAAA) >>
+  rectangle "Сборка Docker\nWebSocket Server" as docker_build_ws << (C, #FFAAAA) >>
+  
+  note top of cicd_backend
+    <b>Backend CI/CD:</b>
+    - Полный набор тестов
+    - Security scanning обязательно
+    - TypeScript strict mode
+    - Миграции БД проверяются
+    - WebSocket тестирование
+  end note
+}
+
+package "CI/CD: Frontend (React)" as cicd_frontend {
+  
+  rectangle "GitHub Actions\n(Frontend тесты)" as frontend_tests << (C, #FFAAAA) >>
+  note right of frontend_tests
+    <b>Запускается при изменении фронтенда:</b>
+    - Unit Tests (Vitest)
+    - Component Tests (React Testing Library)
+    - E2E Tests (Cypress/Playwright)
+    - Accessibility тесты
+    - WebRTC интеграционные тесты
+    - Performance тесты (Lighthouse)
+  end note
+  
+  rectangle "Lint & Format" as lint_check << (C, #FFAAAA) >>
+  note right of lint_check
+    <b>Проверка качества кода:</b>
+    - ESLint (TypeScript правила)
+    - Prettier (форматирование)
+    - TypeScript компиляция
+    - Проверка типов
+    - Bundle size анализ
+  end note
+  
+  rectangle "Сборка production\nReact приложения" as react_build << (C, #FFAAAA) >>
+  rectangle "Build & Push\nDocker образ фронтенда" as docker_build_frontend << (C, #FFAAAA) >>
+  
+  note top of cicd_frontend
+    <b>Frontend CI/CD:</b>
+    - Тестирование компонентов
+    - Accessibility важна
+    - WebRTC интеграция
+    - Bundle optimization
+    - PWA capabilities проверка
+  end note
+}
+
+package "CI/CD: WebRTC Media Server" as cicd_media {
+  
+  rectangle "Media Server тесты" as media_tests << (C, #FFAAAA) >>
+  note right of media_tests
+    <b>Тестирование медиа сервера:</b>
+    - Unit tests медиасервера
+    - Интеграционные тесты WebRTC
+    - Тесты на нагрузку (stress tests)
+    - Тесты качества видео
+    - Тесты восстановления после сбоев
+  end note
+  
+  rectangle "Сборка Docker\nMedia Server" as docker_build_media << (C, #FFAAAA) >>
+}
+
+package "Production Deploy" as prod_deploy {
+  
+  rectangle "Ручной деплой\nв Production" as manual_prod_deploy << (C, #FFAAAA) >>
+  note right of manual_prod_deploy
+    <b>Процесс деплоя (Blue-Green):</b>
+    Фаза 1 (Blue):
+    1. Развертывание новой версии
+    2. Направление 10% трафика
+    3. Мониторинг метрик
+    
+    Фаза 2 (Green):
+    1. Постепенное увеличение трафика
+    2. Полный переход при успехе
+    3. Откат при проблемах
+    
+    <b>Окно деплоя:</b>
+    - В ночное время (01:00-04:00)
+    - Минимальная нагрузка
+  end note
+  
+  rectangle "Docker Registry\nProduction" as prod_docker_registry << (C, #FFAAAA) >>
+  
+  rectangle "Production Server\n(Cloud VPS/K8s)" as prod_server << (C, #FFAAAA) >>
+  note right of prod_server
+    <b>Production компоненты:</b>
+    - Nginx (load balancer)
+    - NestJS API (2+ реплики)
+    - WebSocket Server
+    - Media Server (WebRTC)
+    - PostgreSQL + Redis
+    - Мониторинг стек
+  end note
+  
+  note top of prod_deploy
+    <b>Требования к развертыванию:</b>
+    - Доступность: 99.9% (SLA)
+    - Время деплоя: < 30 минут
+    - Мониторинг во время деплоя
+  end note
+}
+
+package "Monitoring & Maintenance" as monitoring {
+  
+  rectangle "24/7 Мониторинг" as prod_monitoring << (C, #FFAAAA) >>
+  note right of prod_monitoring
+    <b>Инструменты мониторинга:</b>
+    - Prometheus: метрики приложений
+    - Grafana: дашборды
+    - ELK Stack: логи
+    - UptimeRobot: доступность
+    - Sentry: ошибки в реальном времени
+    
+    <b>Ключевые метрики:</b>
+    - API response time (<500ms)
+    - WebRTC соединения
+    - Базы данных нагрузки
+    - Платежные транзакции
+  end note
+  
+  rectangle "Автоматические\nбэкапы" as auto_backups << (C, #FFAAAA) >>
+  note right of auto_backups
+    <b>Расписание бэкапов:</b>
+    - PostgreSQL: ежечасно (WAL) + ежедневно (full)
+    - Redis: ежедневно (RDB)
+    - Медиа файлы: ежедневно
+    - Конфигурации: при изменениях
+    
+    <b>Восстановление:</b>
+    - Автоматическое тестирование восстановления
+    - RPO: < 1 часа
+    - RTO: < 4 часа
+  end note
+  
+  rectangle "Алертинг и\nинциденты" as alerting << (C, #FFAAAA) >>
+  note right of alerting
+    <b>Каналы уведомлений:</b>
+    - Telegram: критические инциденты
+    - Email: важные события
+    - Slack: daily статусы
+    
+    <b>Уровни алертов:</b>
+    - Critical: остановка сервиса
+    - High: деградация производительности
+    - Medium: предупреждения
+    - Low: информационные
+  end note
+  
+  rectangle "Регулярное\nобслуживание" as maintenance << (C, #FFAAAA) >>
+  note right of maintenance
+    <b>Регулярные процедуры:</b>
+    - Обновление ОС и пакетов
+    - Удаление старых логов
+    - Оптимизация БД
+    - SSL сертификаты (Let's Encrypt)
+    - Аудит безопасности
+    - Capacity planning
+  end note
+  
+  note top of monitoring
+    <b>SRE Практики:</b>
+    - SLO: Availability 99.9%
+    - SLI: API latency < 500ms
+    - SLI: Video connection success > 99%
+    - Error budget: 43 минуты/месяц
+    - On-call ротация
+  end note
+}
+
+developer --> local_dev : "Локальная разработка\nс Docker Compose"
+developer --> github : "Push в feature branch\nи создание PR"
+
+github --> backend_tests : "Изменение backend кода"
+github --> frontend_tests : "Изменение frontend кода"
+github --> media_tests : "Изменение медиа сервера"
+
+backend_tests --> security_scan : "Все тесты пройдены"
+security_scan --> docker_build_backend : "Security check пройден"
+backend_tests --> docker_build_ws : "WebSocket тесты пройдены"
+
+lint_check --> react_build : "Lint и форматирование OK"
+react_build --> docker_build_frontend : "Production сборка успешна"
+
+media_tests --> docker_build_media : "Медиа тесты пройдены"
+
+docker_build_backend --> prod_docker_registry : "Образ API загружен"
+docker_build_ws --> prod_docker_registry : "Образ WS загружен"
+docker_build_frontend --> prod_docker_registry : "Образ фронтенда загружен"
+docker_build_media --> prod_docker_registry : "Образ медиасервера загружен"
+
+manual_prod_deploy --> prod_server : "Blue-Green деплой\nв production"
+
+prod_server --> prod_monitoring : "Метрики и логи"
+prod_monitoring --> alerting : "Обнаружение инцидентов"
+alerting --> devops : "Уведомления и алерты об инцидентах"
+devops --> auto_backups : "Управление бэкапами"
+devops --> maintenance : "Плановое обслуживание"
+alerting --> developer : "Уведомления и алерты об инцидентах"
+
+
+
+@enduml
