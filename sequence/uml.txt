@@ -104,10 +104,16 @@ cardService -> cardRepository: Запросить данные\nо карточ�
 activate cardRepository
 cardRepository -> postgres: Запросить данные
 postgres --> cardRepository
-deactivate cardRepository
 cardRepository --> cardService
-deactivate cardService
+deactivate cardRepository
 cardService --> clientApp
+deactivate cardService
+clientApp --> client
+
+client -> clientApp: Выбрать услугу
+clientApp --> client
+
+client -> clientApp: Выбрать время записи
 clientApp --> client
 
 client -> clientApp: Оформить запись
