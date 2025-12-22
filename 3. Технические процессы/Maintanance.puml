@@ -236,6 +236,7 @@ developer --> github : "Push в feature branch\nи создание PR"
 github --> backend_tests : "Изменение backend кода"
 github --> frontend_tests : "Изменение frontend кода"
 github --> media_tests : "Изменение медиа сервера"
+github --> lint_check : "Проверка frontend кода"
 
 backend_tests --> security_scan : "Все тесты пройдены"
 security_scan --> docker_build_backend : "Security check пройден"
