@@ -9,6 +9,8 @@ title C4 Infrastructure Diagram - Сервис Онлайн-Консультац
 System_Ext(stripe, "Stripe API", "Платежная система", "Обработка онлайн-платежей")
 System_Ext(paypal, "PayPal API", "Платежная система", "Альтернативный способ оплаты")
 System_Ext(twilio, "Twilio API", "Сервис коммуникаций", "SMS уведомления\nVideo API опционально")
+System_Ext(sendgrid, "SendGrid API", "Email сервис", "Email сообщения")
+System_Ext(webrtc_sfu, "WebRTC", "Медиа-сервер", "Сервер для видео-консультаций")
 
 package "Production Сервер\n(Cloud VPS / Kubernetes)" as server {
     
@@ -68,6 +70,12 @@ Rel(node_api2, paypal, "Обработка платежей", "HTTPS TLS 1.3")
 
 Rel(node_api1, twilio, "SMS уведомления", "Twilio API")
 Rel(node_api2, twilio, "SMS уведомления", "Twilio API")
+
+Rel(node_api1, sendgrid, "Отправка email", "REST API")
+Rel(node_api2, sendgrid, "Отправка email", "REST API")
+
+Rel(node_api1, webrtc_sfu, "WebRTC соединения", "WebRTC")
+Rel(node_api2, webrtc_sfu, "WebRTC соединения", "WebRTC")
 
 Rel(node_api1, websocket_server, "Real-time события", "Redis Pub/Sub")
 Rel(node_api2, websocket_server, "Real-time события", "Redis Pub/Sub")
